@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 BUILD_DEPS="bsdtar gnupg wget curl bzip2 python git ca-certificates perl-Digest-SHA"
-NODE_VERSION=v8.15.0
+NODE_VERSION=v8.16.0
 #METEOR_RELEASE=1.6.0.1 - for Stacksmith, meteor-1.8 branch that could have METEOR@1.8.1-beta.8 or newer
 USE_EDGE=false
 METEOR_EDGE=1.5-beta.17
@@ -19,11 +19,11 @@ sudo useradd --user-group --system --home-dir /home/wekan wekan
 sudo mkdir -p /home/wekan
 sudo chown wekan:wekan /home/wekan/
 
-# CURRENTLY BROKEN: meteor-1.8 branch that has newer Meteor that is compatible with MongoDB 4.x
-# sudo -u wekan git clone -b meteor-1.8 https://github.com/wekan/wekan.git /home/wekan/app
+# meteor-1.8 branch that has newer Meteor that is compatible with MongoDB 4.x
+sudo -u wekan git clone -b meteor-1.8 https://github.com/wekan/wekan.git /home/wekan/app
 
-# Using Meteor 1.6.x version of Wekan
-sudo -u wekan git clone https://github.com/wekan/wekan.git /home/wekan/app
+# OLD: Using Meteor 1.6.x version of Wekan
+#sudo -u wekan git clone https://github.com/wekan/wekan.git /home/wekan/app
 
 sudo yum install -y ${BUILD_DEPS}
 
@@ -64,17 +64,23 @@ echo " ...\n"
 if [ "$USE_EDGE" = false ]; then
   sudo su -c '/home/wekan/install_meteor.sh' - wekan
 else
-  sudo -u wekan git clone --recursive --depth 1 -b release/METEOR@${METEOR_EDGE} git://github.com/meteor/meteor.git /home/wekan/.meteor;
+  sudo -u wekan git clone --recursive --depth 1 -b release/METEOR@${METEOR_EDGE} https://github.com/meteor/meteor.git /home/wekan/.meteor;
 fi;
 
 # Get additional packages
 sudo mkdir -p /home/wekan/app/packages
 sudo chown wekan:wekan --recursive /home/wekan/app
 cd /home/wekan/app/packages
-sudo -u wekan git clone --depth 1 -b master git://github.com/wekan/flow-router.git kadira-flow-router
-sudo -u wekan git clone --depth 1 -b master git://github.com/meteor-useraccounts/core.git meteor-useraccounts-core
-sudo -u wekan git clone --depth 1 -b master git://github.com/wekan/meteor-accounts-cas.git
-sudo -u wekan git clone --depth 1 -b master git://github.com/wekan/wekan-ldap.git
+sudo -u wekan git clone --depth 1 -b master https://github.com/wekan/flow-router.git kadira-flow-router
+sudo -u wekan git clone --depth 1 -b master https://github.com/meteor-useraccounts/core.git meteor-useraccounts-core
+sudo -u wekan git clone --depth 1 -b master https://github.com/wekan/meteor-accounts-cas.git
+sudo -u wekan git clone --depth 1 -b master https://github.com/wekan/wekan-ldap.git
+sudo -u wekan git clone --depth 1 -b master https://github.com/wekan/wekan-scrollbar.git
+sudo -u wekan git clone --depth 1 -b master https://github.com/wekan/meteor-accounts-oidc.git
+sudo -u wekan mv meteor-accounts-oidc/packages/switch_accounts-oidc wekan_accounts-oidc
+sudo -u wekan mv meteor-accounts-oidc/packages/switch_oidc wekan_oidc
+sudo -u wekan rm -rf meteor-accounts-oidc
+
 sudo sed -i 's/api\.versionsFrom/\/\/api.versionsFrom/' /home/wekan/app/packages/meteor-useraccounts-core/package.js
 sudo -u wekan /home/wekan/.meteor/meteor -- help
 
@@ -86,6 +92,7 @@ sudo -u wekan ${meteor} npm install
 sudo -u wekan ${meteor} build --directory /home/wekan/app_build
 sudo cp /home/wekan/app/fix-download-unicode/cfs_access-point.txt /home/wekan/app_build/bundle/programs/server/packages/cfs_access-point.js
 sudo chown wekan:wekan /home/wekan/app_build/bundle/programs/server/packages/cfs_access-point.js
+sudo rm /home/wekan/app_build/bundle/programs/server/npm/node_modules/meteor/rajit_bootstrap3-datepicker/lib/bootstrap-datepicker/node_modules/phantomjs-prebuilt/lib/phantom/bin/phantomjs
 cd /home/wekan/app_build/bundle/programs/server/
 sudo npm install
 sudo chown -R wekan:wekan ./node_modules

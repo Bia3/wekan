@@ -67,17 +67,19 @@ RulesHelper = {
       card.move(card.swimlaneId, listId, maxOrder + 1);
     }
     if(action.actionType === 'sendEmail'){
-      const emailTo = action.emailTo;
-      const emailMsg = action.emailMsg;
-      const emailSubject = action.emailSubject;
+      const to = action.emailTo;
+      const text = action.emailMsg || '';
+      const subject = action.emailSubject || '';
       try {
         Email.send({
-          emailTo,
+          to,
           from: Accounts.emailTemplates.from,
-          emailSubject,
-          emailMsg,
+          subject,
+          text,
         });
       } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e);
         return;
       }
     }
@@ -86,6 +88,9 @@ RulesHelper = {
     }
     if(action.actionType === 'unarchive'){
       card.restore();
+    }
+    if(action.actionType === 'setColor'){
+      card.setColor(action.selectedColor);
     }
     if(action.actionType === 'addLabel'){
       card.addLabel(action.labelId);
@@ -131,6 +136,38 @@ RulesHelper = {
     }
     if(action.actionType === 'removeChecklist'){
       Checklists.remove({'title':action.checklistName, 'cardId':card._id, 'sort':0});
+    }
+    if(action.actionType === 'addSwimlane'){
+      Swimlanes.insert({
+        title: action.swimlaneName,
+        boardId,
+        sort: 0,
+      });
+    }
+    if(action.actionType === 'addChecklistWithItems'){
+      const checkListId = Checklists.insert({'title':action.checklistName, 'cardId':card._id, 'sort':0});
+      const itemsArray = action.checklistItems.split(',');
+      const checkList = Checklists.findOne({_id:checkListId});
+      for(let i = 0; i <itemsArray.length; i++){
+        ChecklistItems.insert({title:itemsArray[i], checklistId:checkListId, cardId:card._id, 'sort':checkList.itemCount()});
+      }
+    }
+    if(action.actionType === 'createCard'){
+      const list = Lists.findOne({title:action.listName, boardId});
+      let listId = '';
+      let swimlaneId = '';
+      const swimlane = Swimlanes.findOne({title:action.swimlaneName, boardId});
+      if(list === undefined){
+        listId = '';
+      }else{
+        listId = list._id;
+      }
+      if(swimlane === undefined){
+        swimlaneId = Swimlanes.findOne({title:'Default', boardId})._id;
+      }else{
+        swimlaneId = swimlane._id;
+      }
+      Cards.insert({title:action.cardName, listId, swimlaneId, sort:0, boardId});
     }
 
   },
